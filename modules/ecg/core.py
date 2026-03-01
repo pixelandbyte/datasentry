@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from typing import Optional
 
 import anthropic
@@ -29,7 +30,7 @@ def analyze_pipeline(
 
     client = anthropic.Anthropic(api_key=api_key)
     message = client.messages.create(
-        model="claude-3-5-haiku-20241022",
+        model="claude-haiku-4-5-20251001",
         max_tokens=1024,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_content}],
@@ -37,8 +38,12 @@ def analyze_pipeline(
 
     raw_text = message.content[0].text
 
+    # Strip markdown fences if present
+    stripped = re.sub(r"^```(?:json)?\s*\n?", "", raw_text.strip())
+    stripped = re.sub(r"\n?```\s*$", "", stripped)
+
     try:
-        result = json.loads(raw_text)
+        result = json.loads(stripped)
     except json.JSONDecodeError as e:
         raise ValueError(f"Model returned malformed JSON: {e}") from e
 
